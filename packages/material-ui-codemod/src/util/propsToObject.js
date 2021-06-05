@@ -11,8 +11,19 @@ export default function propsToObject({ j, root, componentName, propName, props 
     return value;
   }
 
-  return root.findJSXElements(componentName).forEach((path) => {
+  const isJSXIdentifier = (node, name) => j.JSXIdentifier.check(node) && node.name === name;
+  return root.findJSXElements().forEach((path) => {
+    const { openingElement } = path.value;
+    const isUnscopedElement = isJSXIdentifier(openingElement.name, componentName);
+    const isScopedElement =
+      j.JSXMemberExpression.check(openingElement.name) &&
+      isJSXIdentifier(openingElement.name.object, 'UI') &&
+      isJSXIdentifier(openingElement.name.property, componentName);
+
+    if (!isUnscopedElement && !isScopedElement) return;
+
     let propValue = [];
+
     const attributes = path.node.openingElement.attributes;
     attributes.forEach((node, index) => {
       // Only transform whitelisted props
